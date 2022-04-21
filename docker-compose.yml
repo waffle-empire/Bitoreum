@@ -1,0 +1,7 @@
+version: '3.9'
+services:
+  cpuminer:
+    build: .
+    volumes:
+      - ./config.json:/app/config.json
+      - ./tune_config:/app/tune_config
