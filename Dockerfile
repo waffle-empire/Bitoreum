@@ -1,16 +1,24 @@
-FROM archlinux:base-devel AS setup
+FROM archlinux:base-devel AS build
 
-WORKDIR /dl
+RUN pacman -Syy && pacman -S --noconfirm --needed git
+RUN pacman -Syy && pacman -S --noconfirm --needed numactl openssl gmp jansson automake zlib
 
-RUN pacman -Syy && pacman -S wget --noconfirm
-RUN wget https://github.com/WyvernTKC/cpuminer-gr-avx2/releases/download/1.2.4.1/cpuminer-gr-1.2.4.1-x86_64_linux.tar.gz && \
-tar xf cpuminer-gr-1.2.4.1-x86_64_linux.tar.gz && \
-cd cpuminer-gr-1.2.4.1-x86_64_linux/ && chmod a+x cpuminer.sh
+RUN git clone https://github.com/WyvernTKC/cpuminer-gr-avx2.git /build
+WORKDIR /build
+
+# disable donations
+RUN sed -i "s/enable_donation = true;/enable_donation = false;/" cpu-miner.c
+RUN sed -i "s/double donation_percent = 1.75;/double donation_percent = 0.0;/" cpu-miner.c
+RUN sed -i "s/donation_percent = (donation_percent < 1.75) ? 1.75 : donation_percent;/donation_percent = (donation_percent < 2.f) ? 0.0 : donation_percent;/" cpu-miner.c
+
+RUN ./build.sh
 
 FROM archlinux:base-devel AS deploy
 
+RUN pacman -Syy && pacman -S --noconfirm --needed numactl jansson
+
 WORKDIR /app
 
-COPY --from=setup /dl/cpuminer-gr-1.2.4.1-x86_64_linux/ .
+COPY --from=build /build/cpuminer .
 
-ENTRYPOINT [ "./cpuminer.sh" ]
+ENTRYPOINT [ "./cpuminer", "--config=./config.json" ]
