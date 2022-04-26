@@ -1,7 +1,10 @@
-version: '3.9'
+version: '3.5'
 services:
   cpuminer:
     build: .
+#   cap_add: [ 'ALL' ] # huge_pages
+    privileged: true # MSR / huge_pages
     volumes:
       - ./config.json:/app/config.json
       - ./tune_config:/app/tune_config
+      - /lib/modules:/lib/modules # MSR
